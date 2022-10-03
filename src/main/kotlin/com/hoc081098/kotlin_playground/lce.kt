@@ -12,12 +12,8 @@ sealed interface LCE<out E, out T> {
   data class Error<out E>(val error: E) : LCE<E, Nothing>
 }
 
-@PublishedApi
-@JvmField
-internal val identity: suspend (Throwable) -> Throwable = { it }
-
 @Suppress("NOTHING_TO_INLINE")
-inline fun <T> Flow<T>.toLCEFlow(): Flow<LCE<Throwable, T>> = toLCEFlow(identity)
+inline fun <T> Flow<T>.toLCEFlow(): Flow<LCE<Throwable, T>> = toLCEFlow { it }
 
 inline fun <T, E> Flow<T>.toLCEFlow(crossinline errorMapper: suspend (Throwable) -> E): Flow<LCE<E, T>> =
   map<T, LCE<E, T>> { LCE.Content(it) }
@@ -30,6 +26,8 @@ fun main() = runBlocking<Unit> {
     .concatWith(flow { error("Broken!") })
     .toLCEFlow()
     .collect(::println)
+
+  println("-".repeat(80))
 
   interval(0, 100)
     .take(4)
