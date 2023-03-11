@@ -15,6 +15,7 @@ repositories {
 dependencies {
   implementation("io.github.hoc081098:FlowExt:0.5.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0-Beta")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.0-Beta")
   implementation("io.github.hoc081098:kmp-viewmodel:0.2.0")
   testImplementation(kotlin("test"))
 }
