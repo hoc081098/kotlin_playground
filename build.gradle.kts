@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  kotlin("jvm") version "1.7.20"
+  kotlin("jvm") version "1.8.20-RC"
 }
 
 group = "com.hoc.kotlin_playground"
@@ -13,8 +13,9 @@ repositories {
 }
 
 dependencies {
-  implementation("io.github.hoc081098:FlowExt:0.5.0-SNAPSHOT")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+  implementation("io.github.hoc081098:FlowExt:0.5.0")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0-Beta")
+  implementation("io.github.hoc081098:kmp-viewmodel:0.2.0")
   testImplementation(kotlin("test"))
 }
 
@@ -29,6 +30,6 @@ tasks.withType<KotlinCompile> {
       "-XXLanguage:+RangeUntilOperator",
       "-Xcontext-receivers"
     )
-    languageVersion = "1.8"
+    languageVersion = "1.9"
   }
 }
