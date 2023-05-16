@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  kotlin("jvm") version "1.8.20-RC"
+  kotlin("jvm") version "1.8.21"
 }
 
 group = "com.hoc.kotlin_playground"
@@ -19,20 +19,20 @@ configurations.all {
 
 dependencies {
   testImplementation(kotlin("test"))
-  implementation("io.github.hoc081098:FlowExt:0.6.0"){
+  implementation("io.github.hoc081098:FlowExt:0.7.0-SNAPSHOT") {
     isChanging = true
   }
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0-Beta")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.0-Beta")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.0")
   implementation("io.github.hoc081098:kmp-viewmodel:0.3.1-SNAPSHOT") {
     isChanging = true
   }
   implementation("io.reactivex.rxjava3:rxjava:3.1.6")
   implementation("com.github.akarnokd:kotlin-flow-extensions:0.0.14")
-
+  
   // Add the BOM using the desired ReactiveState version
   api(platform("com.ensody.reactivestate:reactivestate-bom:5.2.1"))
-
+  
   // Leave out the version number from now on:
   implementation("com.ensody.reactivestate:reactivestate")
 }
@@ -48,6 +48,13 @@ tasks.withType<KotlinCompile> {
       "-XXLanguage:+RangeUntilOperator",
       "-Xcontext-receivers"
     )
-    languageVersion = "1.9"
   }
 }
+
+tasks
+  .withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>()
+  .configureEach {
+    compilerOptions
+      .languageVersion
+      .set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
+  }

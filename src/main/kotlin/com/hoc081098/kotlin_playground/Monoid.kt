@@ -60,6 +60,7 @@ val intMonoid = object : Monoid<Int> {
   override fun combine(a: Int, b: Int): Int = a + b
 }
 
+@ExperimentalStdlibApi
 fun main() {
   val sum = intMonoid.run { listOf(1, 2, 3, 4, 5).fold() }
   println(sum)
