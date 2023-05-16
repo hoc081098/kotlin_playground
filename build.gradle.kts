@@ -29,6 +29,12 @@ dependencies {
   }
   implementation("io.reactivex.rxjava3:rxjava:3.1.6")
   implementation("com.github.akarnokd:kotlin-flow-extensions:0.0.14")
+
+  // Add the BOM using the desired ReactiveState version
+  api(platform("com.ensody.reactivestate:reactivestate-bom:5.2.1"))
+
+  // Leave out the version number from now on:
+  implementation("com.ensody.reactivestate:reactivestate")
 }
 
 tasks.test {
