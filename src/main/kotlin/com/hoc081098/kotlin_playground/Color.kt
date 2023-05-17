@@ -1,5 +1,7 @@
 package com.hoc081098.kotlin_playground
 
+import kotlin.enums.EnumEntries
+
 enum class Color(val colorName: String, val rgb: String) {
   RED("Red", "#FF0000"),
   ORANGE("Orange", "#FF7F00"),
@@ -11,6 +13,9 @@ fun findByRgb(rgb: String): Color? = Color.entries.find { it.rgb == rgb }
 
 @ExperimentalStdlibApi
 fun main() {
+  val entries: EnumEntries<Color> = Color.entries
+  
+  println(entries)
   println(Color.entries)
   println(Color.entries === Color.entries)
   
