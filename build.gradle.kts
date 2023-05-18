@@ -19,22 +19,25 @@ configurations.all {
 
 dependencies {
   testImplementation(kotlin("test"))
+  
   implementation("io.github.hoc081098:FlowExt:0.7.0-SNAPSHOT") {
     isChanging = true
   }
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.0")
   implementation("io.github.hoc081098:kmp-viewmodel:0.3.1-SNAPSHOT") {
     isChanging = true
   }
+  
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.0")
+  
   implementation("io.reactivex.rxjava3:rxjava:3.1.6")
   implementation("com.github.akarnokd:kotlin-flow-extensions:0.0.14")
   
-  // Add the BOM using the desired ReactiveState version
   api(platform("com.ensody.reactivestate:reactivestate-bom:5.2.1"))
-  
-  // Leave out the version number from now on:
   implementation("com.ensody.reactivestate:reactivestate")
+  
+  implementation("io.arrow-kt:arrow-core:1.2.0-RC")
+  implementation("io.arrow-kt:arrow-fx-coroutines:1.2.0-RC")
 }
 
 tasks.test {
