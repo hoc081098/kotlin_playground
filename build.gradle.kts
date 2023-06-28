@@ -23,7 +23,7 @@ dependencies {
   implementation("io.github.hoc081098:FlowExt:0.7.0-SNAPSHOT") {
     isChanging = true
   }
-  implementation("io.github.hoc081098:kmp-viewmodel:0.4.1-SNAPSHOT") {
+  implementation("io.github.hoc081098:kmp-viewmodel:0.4.0") {
     isChanging = true
   }
   
