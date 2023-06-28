@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  kotlin("jvm") version "1.8.21"
+  kotlin("jvm") version "1.9.0-RC"
 }
 
 group = "com.hoc.kotlin_playground"
@@ -23,12 +23,12 @@ dependencies {
   implementation("io.github.hoc081098:FlowExt:0.7.0-SNAPSHOT") {
     isChanging = true
   }
-  implementation("io.github.hoc081098:kmp-viewmodel:0.3.1-SNAPSHOT") {
+  implementation("io.github.hoc081098:kmp-viewmodel:0.4.1-SNAPSHOT") {
     isChanging = true
   }
   
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.0")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.1")
   
   implementation("io.reactivex.rxjava3:rxjava:3.1.6")
   implementation("com.github.akarnokd:kotlin-flow-extensions:0.0.14")
