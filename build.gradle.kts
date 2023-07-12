@@ -36,7 +36,7 @@ dependencies {
   api(platform("com.ensody.reactivestate:reactivestate-bom:5.2.1"))
   implementation("com.ensody.reactivestate:reactivestate")
   
-  implementation("io.arrow-kt:arrow-core:1.2.0-RC")
+  implementation("io.arrow-kt:arrow-core:1.2.0")
   implementation("io.arrow-kt:arrow-fx-coroutines:1.2.0-RC")
 }
 
