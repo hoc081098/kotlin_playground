@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  kotlin("jvm") version "1.9.0-RC"
+  kotlin("jvm") version "1.9.10"
 }
 
 group = "com.hoc.kotlin_playground"
@@ -46,7 +46,7 @@ tasks.test {
 
 tasks.withType<KotlinCompile> {
   kotlinOptions {
-    jvmTarget = JavaVersion.VERSION_1_8.toString()
+    jvmTarget = JavaVersion.VERSION_13.toString()
     freeCompilerArgs = freeCompilerArgs + arrayOf(
       "-XXLanguage:+RangeUntilOperator",
       "-Xcontext-receivers"
@@ -54,10 +54,15 @@ tasks.withType<KotlinCompile> {
   }
 }
 
+java {
+  sourceCompatibility = JavaVersion.VERSION_13
+  targetCompatibility = JavaVersion.VERSION_13
+}
+
 tasks
   .withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>()
   .configureEach {
-    compilerOptions
-      .languageVersion
-      .set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
+//    compilerOptions
+//      .languageVersion
+//      .set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
   }
