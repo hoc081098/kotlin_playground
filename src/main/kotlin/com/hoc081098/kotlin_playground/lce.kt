@@ -7,6 +7,8 @@ import com.hoc081098.flowext.startWith
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 sealed interface LCE<out E, out T> {
   data object Loading : LCE<Nothing, Nothing>
@@ -14,22 +16,60 @@ sealed interface LCE<out E, out T> {
   data class Error<out E>(val error: E) : LCE<E, Nothing>
 }
 
+@OptIn(ExperimentalContracts::class)
+@Suppress("NOTHING_TO_INLINE")
+inline fun <E, T> LCE<E, T>.contentOrNull(): T? {
+  contract {
+    returnsNotNull() implies (this@contentOrNull is LCE.Content<T>)
+  }
 
-inline fun <E, T> LCE<E, T>.contentOrNull(): T? =
-  when (this) {
+  return when (this) {
     is LCE.Content -> content
     else -> null
   }
+}
 
-inline fun <E, T> LCE<E, T>.errorOrNull(): E? =
-  when (this) {
+@OptIn(ExperimentalContracts::class)
+@Suppress("NOTHING_TO_INLINE")
+inline fun <E, T> LCE<E, T>.errorOrNull(): E? {
+  contract {
+    returnsNotNull() implies (this@errorOrNull is LCE.Error<E>)
+  }
+
+  return when (this) {
     is LCE.Error -> error
     else -> null
   }
+}
 
-inline val <E, T> LCE<E, T>.isContent get() = this is LCE.Content
-inline val <E, T> LCE<E, T>.isLoading get() = this is LCE.Loading
-inline val <E, T> LCE<E, T>.isError get() = this is LCE.Error
+@OptIn(ExperimentalContracts::class)
+@Suppress("NOTHING_TO_INLINE")
+inline fun <E, T> LCE<E, T>.isContent(): Boolean {
+  contract {
+    returns(true) implies (this@isContent is LCE.Content<T>)
+  }
+
+  return this is LCE.Content
+}
+
+@OptIn(ExperimentalContracts::class)
+@Suppress("NOTHING_TO_INLINE")
+inline fun <E, T> LCE<E, T>.isLoading(): Boolean {
+  contract {
+    returns(true) implies (this@isLoading is LCE.Loading)
+  }
+
+  return this is LCE.Loading
+}
+
+@OptIn(ExperimentalContracts::class)
+@Suppress("NOTHING_TO_INLINE")
+inline fun <E, T> LCE<E, T>.isError(): Boolean {
+  contract {
+    returns(true) implies (this@isError is LCE.Error<E>)
+  }
+  return this is LCE.Error
+}
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun <T> Flow<T>.toLCEFlow(): Flow<LCE<Throwable, T>> = toLCEFlow { it }
@@ -102,4 +142,11 @@ fun main() = runBlocking<Unit> {
   lceFlowOf({ "Error: $it" }, { error("Fake") as String })
     .onEach(::println)
     .collect()
+
+  println("-".repeat(80))
+
+  val lce: LCE<Any, String> = LCE.Content("Hello")
+  if (lce.isContent()) {
+    println(lce.content)
+  }
 }
