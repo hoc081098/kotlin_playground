@@ -15,6 +15,8 @@ fun main() {
         .newInstance()
     println("data object: === should be false -> ${newDataObject === DataObject}")
     println("data object: == should be true -> ${newDataObject == DataObject}")
+    println("data object: toString() -> $newDataObject")
+    println("data object: hashCode() -> ${newDataObject.hashCode()}")
 
     println("-".repeat(80))
 
@@ -24,4 +26,6 @@ fun main() {
         .newInstance()
     println("normal object: === should be false -> ${newNormalObject === NormalObject}")
     println("normal object: == should be false -> ${newNormalObject == NormalObject}")
+    println("normal object: toString() -> $newNormalObject")
+    println("normal object: hashCode() -> ${newNormalObject.hashCode()}")
 }
