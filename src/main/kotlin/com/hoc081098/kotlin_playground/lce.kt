@@ -1,8 +1,10 @@
 package com.hoc081098.kotlin_playground
 
 import com.hoc081098.flowext.concatWith
+import com.hoc081098.flowext.flowFromSuspend
 import com.hoc081098.flowext.interval
 import com.hoc081098.flowext.startWith
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
 
@@ -12,13 +14,37 @@ sealed interface LCE<out E, out T> {
   data class Error<out E>(val error: E) : LCE<E, Nothing>
 }
 
+
+inline fun <E, T> LCE<E, T>.contentOrNull(): T? =
+  when (this) {
+    is LCE.Content -> content
+    else -> null
+  }
+
+inline fun <E, T> LCE<E, T>.errorOrNull(): E? =
+  when (this) {
+    is LCE.Error -> error
+    else -> null
+  }
+
+inline val <E, T> LCE<E, T>.isContent get() = this is LCE.Content
+inline val <E, T> LCE<E, T>.isLoading get() = this is LCE.Loading
+inline val <E, T> LCE<E, T>.isError get() = this is LCE.Error
+
 @Suppress("NOTHING_TO_INLINE")
 inline fun <T> Flow<T>.toLCEFlow(): Flow<LCE<Throwable, T>> = toLCEFlow { it }
 
-inline fun <T, E> Flow<T>.toLCEFlow(crossinline errorMapper: suspend (Throwable) -> E): Flow<LCE<E, T>> =
+fun <E, T> Flow<T>.toLCEFlow(errorMapper: suspend (Throwable) -> E): Flow<LCE<E, T>> =
   map<T, LCE<E, T>> { LCE.Content(it) }
     .startWith(LCE.Loading)
     .catch { emit(LCE.Error(errorMapper(it))) }
+
+fun <T> lceFlowOf(function: suspend () -> T) =
+  flowFromSuspend(function).toLCEFlow()
+
+fun <E, T> lceFlowOf(errorMapper: suspend (Throwable) -> E, function: suspend () -> T) =
+  flowFromSuspend(function)
+    .toLCEFlow(errorMapper)
 
 object NormalObject
 
@@ -54,6 +80,26 @@ fun main() = runBlocking<Unit> {
     .take(4)
     .concatWith(flow { error("Broken!") })
     .toLCEFlow { "Error: $it" }
+    .onEach(::println)
+    .collect()
+
+  println("-".repeat(80))
+
+  lceFlowOf { delay(100); "Hello" }
+    .onEach(::println)
+    .collect()
+
+  lceFlowOf<String> { error("Fake") }
+    .onEach(::println)
+    .collect()
+
+  println("-".repeat(80))
+
+  lceFlowOf({ "Error: $it" }, { delay(100); "Hello" })
+    .onEach(::println)
+    .collect()
+
+  lceFlowOf({ "Error: $it" }, { error("Fake") as String })
     .onEach(::println)
     .collect()
 }
