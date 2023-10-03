@@ -34,7 +34,7 @@ dependencies {
   implementation("io.reactivex.rxjava3:rxjava:3.1.6")
   implementation("com.github.akarnokd:kotlin-flow-extensions:0.0.14")
 
-  api(platform("com.ensody.reactivestate:reactivestate-bom:5.2.1"))
+  api(platform("com.ensody.reactivestate:reactivestate-bom:5.6.0"))
   implementation("com.ensody.reactivestate:reactivestate")
 
   implementation("io.arrow-kt:arrow-core:1.2.0")
