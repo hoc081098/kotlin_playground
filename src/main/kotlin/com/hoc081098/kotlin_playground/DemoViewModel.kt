@@ -1,6 +1,7 @@
 package com.hoc081098.kotlin_playground
 
 import com.hoc081098.flowext.interval
+import com.hoc081098.kmp.viewmodel.InternalKmpViewModelApi
 import com.hoc081098.kmp.viewmodel.ViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -26,6 +27,7 @@ class DemoViewModel : ViewModel() {
   }
 }
 
+@OptIn(InternalKmpViewModelApi::class)
 fun main(): Unit = runBlocking {
   val demoViewModel = DemoViewModel()
   val job = demoViewModel.state
@@ -38,4 +40,5 @@ fun main(): Unit = runBlocking {
   demoViewModel.clear()
 
   println("Done")
+  println(demoViewModel.isCleared())
 }
