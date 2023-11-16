@@ -31,7 +31,7 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
   implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.6")
 
-  implementation("io.reactivex.rxjava3:rxjava:3.1.6")
+  implementation("io.reactivex.rxjava3:rxjava:3.1.8")
   implementation("com.github.akarnokd:kotlin-flow-extensions:0.0.14")
 
   api(platform("com.ensody.reactivestate:reactivestate-bom:5.2.1"))
