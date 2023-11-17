@@ -20,7 +20,7 @@ configurations.all {
 dependencies {
   testImplementation(kotlin("test"))
 
-  implementation("io.github.hoc081098:FlowExt:0.7.1") {
+  implementation("io.github.hoc081098:FlowExt:0.7.4") {
     isChanging = true
   }
   implementation("io.github.hoc081098:kmp-viewmodel:0.5.0") {
