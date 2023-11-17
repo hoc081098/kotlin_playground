@@ -13,19 +13,19 @@ repositories {
 }
 
 configurations.all {
-  // Check for updates every build
-  resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+  resolutionStrategy.eachDependency { ->
+    if (requested.group == "io.github.hoc081098") {
+      // Check for updates every build
+      resolutionStrategy.cacheChangingModulesFor(30, TimeUnit.MINUTES)
+    }
+  }
 }
 
 dependencies {
   testImplementation(kotlin("test"))
 
-  implementation("io.github.hoc081098:FlowExt:0.7.4") {
-    isChanging = true
-  }
-  implementation("io.github.hoc081098:kmp-viewmodel:0.5.0") {
-    isChanging = true
-  }
+  implementation("io.github.hoc081098:FlowExt:0.7.4")
+  implementation("io.github.hoc081098:kmp-viewmodel:0.5.0")
 
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
