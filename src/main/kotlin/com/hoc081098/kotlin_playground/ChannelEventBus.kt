@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
@@ -27,8 +26,6 @@ interface ChannelEvent<out T : ChannelEvent<T>> {
 typealias ChannelEventKey<T> = ChannelEvent.Key<T>
 
 class ChannelEventBus {
-  private data object DoneToken
-
   private data class Entry(
     val channel: Channel<Any>,
     val isCollecting: Boolean
@@ -83,15 +80,16 @@ class ChannelEventBus {
       _entryMap
         .remove(key)!!
         .also { check(!it.isCollecting) { "only one collector is allowed at a time" } }
+        .also { println("REMOVED: $key -> $it") }
     }
 
   // ---------------------------------------------------------------------------------------------
 
   fun <E : ChannelEvent<E>> send(event: E): Unit = getOrCreateEntry(event.key).channel.trySend(event)
     .let { res ->
-      println("Sent $event -> $res")
+      println("LOG: Sent $event -> $res")
       _entryMap.forEach { (k, v) ->
-        println("STATE: $k -> $v")
+        println("LOG: $k -> $v")
       }
       println("-".repeat(80))
     }
@@ -102,28 +100,17 @@ class ChannelEventBus {
     getOrCreateEntryAndMarkAsCollecting(key)
       .channel
       .receiveAsFlow()
-      .takeWhile { it != DoneToken }
       .map { it as T }
       .let { emitAll(it) }
   }.onCompletion { markAsNotCollecting(key) }
 
-
-  fun close(key: ChannelEventKey<*>) = removeEntry(key).channel.run {
-    trySend(DoneToken)
-    close()
-    Unit
-  }
+  fun close(key: ChannelEventKey<*>): Unit = removeEntry(key).channel.close().let { }
 
   fun forceCloseAll() {
     synchronized(_entryMap) {
-      _entryMap.forEach { (_, v) ->
-        v.channel.run {
-          trySend(DoneToken)
-          close()
-        }
-      }
-
+      _entryMap.forEach { (_, v) -> v.channel.close() }
       _entryMap.clear()
+      println("CLOSE: forceCloseAll")
     }
   }
 }
