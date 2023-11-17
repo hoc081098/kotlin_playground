@@ -1,5 +1,6 @@
 package com.hoc081098.kotlin_playground
 
+import java.io.Closeable
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
@@ -25,11 +26,13 @@ interface ChannelEvent<out T : ChannelEvent<T>> {
 
 typealias ChannelEventKey<T> = ChannelEvent.Key<T>
 
-class ChannelEventBus {
+class ChannelEventBus : Closeable {
   private data class Entry(
     val channel: Channel<Any>,
     val isCollecting: Boolean
-  )
+  ) {
+    override fun toString(): String = "${super.toString()}($channel, $isCollecting)"
+  }
 
   // @GuardedBy("_entryMap")
   private val _entryMap = hashMapOf<ChannelEventKey<*>, Entry>()
@@ -75,11 +78,15 @@ class ChannelEventBus {
   /**
    * Throws if there is no entry for [key].
    */
-  private fun removeEntry(key: ChannelEventKey<*>): Entry =
+  private fun removeEntry(key: ChannelEventKey<*>, requireNotCollecting: Boolean): Entry =
     synchronized(_entryMap) {
       _entryMap
         .remove(key)!!
-        .also { check(!it.isCollecting) { "only one collector is allowed at a time" } }
+        .also {
+          if (requireNotCollecting) {
+            check(!it.isCollecting) { "only one collector is allowed at a time" }
+          }
+        }
         .also { println("REMOVED: $key -> $it") }
     }
 
@@ -104,9 +111,15 @@ class ChannelEventBus {
       .let { emitAll(it) }
   }.onCompletion { markAsNotCollecting(key) }
 
-  fun close(key: ChannelEventKey<*>): Unit = removeEntry(key).channel.close().let { }
+  fun closeByKey(
+    key: ChannelEventKey<*>,
+    requireNotCollecting: Boolean = true,
+  ): Unit = removeEntry(key, requireNotCollecting)
+    .channel
+    .close()
+    .let { }
 
-  fun forceCloseAll() {
+  override fun close() {
     synchronized(_entryMap) {
       _entryMap.forEach { (_, v) -> v.channel.close() }
       _entryMap.clear()
@@ -115,35 +128,61 @@ class ChannelEventBus {
   }
 }
 
-
 data class DemoEvent(val i: Int) : ChannelEvent<DemoEvent> {
   override val key get() = Key
 
-  companion object Key : ChannelEventKey<DemoEvent>
+  companion object Key : ChannelEventKey<DemoEvent> {
+    override fun toString() = "DemoEvent.Key"
+  }
+}
+
+data class Demo2Event(val i: Int) : ChannelEvent<Demo2Event> {
+  override val key get() = Key
+
+  companion object Key : ChannelEventKey<Demo2Event> {
+    override fun toString() = "Demo2Event.Key"
+  }
 }
 
 fun main(): Unit = runBlocking {
   val bus = ChannelEventBus()
   val d = CompletableDeferred<Unit>()
+  val d2 = CompletableDeferred<Unit>()
 
   bus.send(DemoEvent(1))
+  bus.send(Demo2Event(1))
   bus.send(DemoEvent(2))
+  bus.send(Demo2Event(2))
 
   val j = launch {
     bus.receiveAsFlow(DemoEvent).collect {
-      println(">>>: $it")
+      println("[1 receive] $it")
       if (it.i == 4) {
         d.complete(Unit)
       }
     }
   }
+  val j2 = launch {
+    bus.receiveAsFlow(Demo2Event).collect {
+      println("[2 receive] $it")
+      if (it.i == 4) {
+        d2.complete(Unit)
+      }
+    }
+  }
 
   bus.send(DemoEvent(3))
+  bus.send(Demo2Event(3))
+  bus.send(Demo2Event(4))
   bus.send(DemoEvent(4))
 
   d.await()
+  d2.await()
   j.cancelAndJoin()
-  bus.close(DemoEvent)
+  j2.cancelAndJoin()
+
+  bus.closeByKey(DemoEvent)
+  bus.closeByKey(Demo2Event)
 
   delay(1000)
   bus.send(DemoEvent(5))
