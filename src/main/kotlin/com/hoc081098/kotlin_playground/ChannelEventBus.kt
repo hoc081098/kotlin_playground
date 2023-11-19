@@ -60,6 +60,39 @@ sealed class ChannelEventBusException(cause: Throwable?, message: String?) : Run
   ) : ChannelEventBusException(null, "Flow by key=$key is already collected")
 }
 
+/**
+ * ## Multi-key, multi-producer, single-consumer event bus backed by [Channel]s.
+ *
+ * - This bus is thread-safe to be used by multiple threads.
+ *
+ * - [ChannelEvent.Key] will be used to identify a bus for a specific type of events.
+ *   Each bus has a [Channel] to send events to and a [Flow] to receive events from.
+ *
+ * - The [Channel] is unbounded [Channel.UNLIMITED].
+ *   The [Flow] is cold and only one collector is allowed at a time.
+ *   This make sure all events are consumed.
+ *
+ * ## Basic usage:
+ * ```kotlin
+ * // Create your event type
+ * data class AwesomeEvent(val payload: Int) : ChannelEvent<AwesomeEvent> {
+ *   override val key get() = Key
+ *   companion object Key : ChannelEventKey<AwesomeEvent>
+ * }
+ *
+ * // Create your bus instance
+ * val bus = ChannelEventBus()
+ *
+ * // Send events to the bus
+ * bus.send(AwesomeEvent(1))
+ * bus.send(AwesomeEvent(2))
+ * bus.send(AwesomeEvent(3))
+ *
+ * // Receive events from the bus
+ * bus.receiveAsFlow(AwesomeEvent)
+ *   .collect { e: AwesomeEvent -> println(e) }
+ * ```
+ */
 sealed interface ChannelEventBus : Closeable {
   /**
    * Send [event] to the bus identified by [ChannelEvent.key].
@@ -89,6 +122,11 @@ sealed interface ChannelEventBus : Closeable {
   )
 }
 
+/**
+ * Create a new [ChannelEventBus] instance.
+ *
+ * @param logger a [ChannelEventBusLogger] to log events.
+ */
 fun ChannelEventBus(logger: ChannelEventBusLogger? = null): ChannelEventBus = ChannelEventBusImpl(logger)
 
 object ConsoleChannelEventBusLogger : ChannelEventBusLogger {
