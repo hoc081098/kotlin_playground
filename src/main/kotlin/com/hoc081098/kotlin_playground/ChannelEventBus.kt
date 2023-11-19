@@ -5,6 +5,7 @@ import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -18,6 +19,9 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
+/**
+ *
+ */
 interface ChannelEvent<out T : ChannelEvent<T>> {
   interface Key<out T : ChannelEvent<T>>
 
@@ -26,6 +30,7 @@ interface ChannelEvent<out T : ChannelEvent<T>> {
 
 typealias ChannelEventKey<T> = ChannelEvent.Key<T>
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ChannelEventBus : Closeable {
   private data class Entry(
     val channel: Channel<Any>,
@@ -78,13 +83,20 @@ class ChannelEventBus : Closeable {
   /**
    * Throws if there is no entry for [key].
    */
-  private fun removeEntry(key: ChannelEventKey<*>, requireNotCollecting: Boolean): Entry =
+  private fun removeEntry(
+    key: ChannelEventKey<*>,
+    requireNotCollecting: Boolean,
+    requireChannelEmpty: Boolean,
+  ): Entry =
     synchronized(_entryMap) {
       _entryMap
         .remove(key)!!
         .also {
           if (requireNotCollecting) {
-            check(!it.isCollecting) { "only one collector is allowed at a time" }
+            check(!it.isCollecting) { "$key: only one collector is allowed at a time" }
+          }
+          if (requireChannelEmpty) {
+            check(it.channel.isEmpty) { "$key: the channel is not empty. try to consume all elements before closing" }
           }
         }
         .also { println("REMOVED: $key -> $it") }
@@ -111,10 +123,15 @@ class ChannelEventBus : Closeable {
       .let { emitAll(it) }
   }.onCompletion { markAsNotCollecting(key) }
 
-  fun closeByKey(
+  fun closeKey(
     key: ChannelEventKey<*>,
     requireNotCollecting: Boolean = true,
-  ): Unit = removeEntry(key, requireNotCollecting)
+    requireChannelEmpty: Boolean = false,
+  ): Unit = removeEntry(
+    key = key,
+    requireNotCollecting = requireNotCollecting,
+    requireChannelEmpty = requireChannelEmpty
+  )
     .channel
     .close()
     .let { }
@@ -181,15 +198,19 @@ fun main(): Unit = runBlocking {
   j.cancelAndJoin()
   j2.cancelAndJoin()
 
-  bus.closeByKey(DemoEvent)
-  bus.closeByKey(Demo2Event)
+  bus.closeKey(DemoEvent)
+  bus.closeKey(Demo2Event)
 
   delay(1000)
   bus.send(DemoEvent(5))
   bus.send(DemoEvent(6))
+
+  runCatching { bus.closeKey(DemoEvent, requireChannelEmpty = true) }
+    .onFailure { it.printStackTrace() }
+
   launch {
     bus.receiveAsFlow(DemoEvent).collect {
-      println(">>>: $it")
+      println("[3 receive] $it")
       if (it.i == 6) {
         cancel()
       }
