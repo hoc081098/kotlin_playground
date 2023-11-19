@@ -1,11 +1,13 @@
 package com.hoc081098.kotlin_playground
 
-import java.io.Closeable
+import kotlinx.coroutines.internal.synchronized as coroutinesSynchronized
+import com.hoc081098.kmp.viewmodel.Closeable
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.internal.SynchronizedObject
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
@@ -30,20 +33,27 @@ interface ChannelEvent<out T : ChannelEvent<T>> {
 
 typealias ChannelEventKey<T> = ChannelEvent.Key<T>
 
+@OptIn(InternalCoroutinesApi::class)
+private class SynchronizedHashMap<K, V> : HashMap<K, V>() {
+  @JvmField
+  val lock = SynchronizedObject()
+
+  inline fun <T> synchronized(block: () -> T): T = coroutinesSynchronized(lock, block)
+}
+
+private data class Entry(
+  val channel: Channel<Any>,
+  val isCollecting: Boolean
+) {
+  override fun toString(): String = "${super.toString()}($channel, $isCollecting)"
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChannelEventBus : Closeable {
-  private data class Entry(
-    val channel: Channel<Any>,
-    val isCollecting: Boolean
-  ) {
-    override fun toString(): String = "${super.toString()}($channel, $isCollecting)"
-  }
-
-  // @GuardedBy("_entryMap")
-  private val _entryMap = hashMapOf<ChannelEventKey<*>, Entry>()
+  private val _entryMap = SynchronizedHashMap<ChannelEventKey<*>, Entry>()
 
   private fun getOrCreateEntry(key: ChannelEventKey<*>): Entry =
-    synchronized(_entryMap) {
+    _entryMap.synchronized {
       _entryMap.getOrPut(key) {
         Entry(channel = Channel(capacity = Channel.UNLIMITED), isCollecting = false)
           .also { println("CREATED: $key -> $it") }
@@ -51,7 +61,7 @@ class ChannelEventBus : Closeable {
     }
 
   private fun getOrCreateEntryAndMarkAsCollecting(key: ChannelEventKey<*>): Entry =
-    synchronized(_entryMap) {
+    _entryMap.synchronized {
       val existing = _entryMap[key]
       if (existing === null) {
         Entry(channel = Channel(capacity = Channel.UNLIMITED), isCollecting = true)
@@ -71,7 +81,7 @@ class ChannelEventBus : Closeable {
    * Throws if there is no entry for [key].
    */
   private fun markAsNotCollecting(key: ChannelEventKey<*>): Unit =
-    synchronized(_entryMap) {
+    _entryMap.synchronized {
       val entry = _entryMap[key]!!
       check(entry.isCollecting) { "only one collector is allowed at a time" }
       _entryMap[key] = entry
@@ -88,7 +98,7 @@ class ChannelEventBus : Closeable {
     requireNotCollecting: Boolean,
     requireChannelEmpty: Boolean,
   ): Entry =
-    synchronized(_entryMap) {
+    _entryMap.synchronized {
       _entryMap
         .remove(key)!!
         .also {
@@ -137,7 +147,7 @@ class ChannelEventBus : Closeable {
     .let { }
 
   override fun close() {
-    synchronized(_entryMap) {
+    _entryMap.synchronized {
       _entryMap.forEach { (_, v) -> v.channel.close() }
       _entryMap.clear()
       println("CLOSE: forceCloseAll")
