@@ -15,9 +15,9 @@ import kotlinx.coroutines.channels.getOrElse
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.internal.SynchronizedObject
 import kotlinx.coroutines.launch
@@ -345,12 +345,20 @@ private class ChannelEventBusImpl(
 
   @Suppress("UNCHECKED_CAST")
   override fun <T : ChannelEvent<T>> receiveAsFlow(key: ChannelEventKey<T>): Flow<T> = flow {
-    getOrCreateBusAndMarkAsCollecting(key)
-      .channel
-      .receiveAsFlow()
-      .map { it as T }
-      .let { emitAll(it) }
-  }.onCompletion { markAsNotCollecting(key) }
+    try {
+      getOrCreateBusAndMarkAsCollecting(key)
+        .channel
+        .receiveAsFlow()
+        .map { it as T }
+        .let { emitAll(it) }
+    } catch (e: Throwable) {
+      markAsNotCollecting(key)
+      throw e
+    }
+
+    // Normal completion
+    markAsNotCollecting(key)
+  }
 
   override fun closeKey(
     key: ChannelEventKey<*>,
@@ -407,6 +415,8 @@ fun main(): Unit = runBlocking {
   bus.send(Demo2Event(2))
 
   val j = launch {
+    bus.receiveAsFlow(DemoEvent).first().let { println("taken $it") }
+    println("OK")
     bus.receiveAsFlow(DemoEvent).collect {
       println("[1 receive] $it")
       if (it.i == 4) {
