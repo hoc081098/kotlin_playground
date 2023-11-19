@@ -38,7 +38,7 @@ interface ChannelEvent<out T : ChannelEvent<T>> {
   val key: Key<T>
 }
 
-typealias ChannelEventKey<T> = ChannelEvent.Key<T>
+private typealias ChannelEventKey<T> = ChannelEvent.Key<T>
 
 /**
  * Logger for [ChannelEventBus].
