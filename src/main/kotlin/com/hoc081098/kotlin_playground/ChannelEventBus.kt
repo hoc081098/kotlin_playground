@@ -57,6 +57,7 @@ sealed interface ChannelEventBus : Closeable {
     key: ChannelEventKey<*>,
     requireNotCollecting: Boolean = true,
     requireChannelEmpty: Boolean = false,
+    requireExists: Boolean = true,
   )
 }
 
@@ -147,28 +148,32 @@ private class ChannelEventBusImpl(
     key: ChannelEventKey<*>,
     requireNotCollecting: Boolean,
     requireChannelEmpty: Boolean,
-  ): Entry =
+    requireExists: Boolean,
+  ): Entry? =
     _entryMap.synchronized {
-      checkNotNull(
-        _entryMap
-          .remove(key)
-      ) { "$key: no entry found" }
-        .also {
-          if (requireNotCollecting) {
-            check(!it.isCollecting) { "$key: only one collector is allowed at a time" }
-          }
-          if (requireChannelEmpty) {
-            check(it.channel.isEmpty) { "$key: the channel is not empty. try to consume all elements before closing" }
-          }
+      val removed = _entryMap.remove(key)
+
+      if (requireExists) {
+        checkNotNull(removed) { "$key: no entry found" }
+      }
+
+      removed?.also {
+        if (requireNotCollecting) {
+          check(!it.isCollecting) { "$key: only one collector is allowed at a time" }
         }
-        .also { logger?.onClosed(key, this) }
+        if (requireChannelEmpty) {
+          check(it.channel.isEmpty) { "$key: the channel is not empty. try to consume all elements before closing" }
+        }
+        logger?.onClosed(key, this)
+      }
     }
 
   // ---------------------------------------------------------------------------------------------
 
-  override fun <E : ChannelEvent<E>> send(event: E): Unit = getOrCreateEntry(event.key).channel
+  override fun <E : ChannelEvent<E>> send(event: E) = getOrCreateEntry(event.key)
+    .channel
     .trySend(event)
-    .let { }
+    .getOrThrow()
 
   @Suppress("UNCHECKED_CAST")
   override fun <T : ChannelEvent<T>> receiveAsFlow(key: ChannelEventKey<T>): Flow<T> = flow {
@@ -183,14 +188,15 @@ private class ChannelEventBusImpl(
     key: ChannelEventKey<*>,
     requireNotCollecting: Boolean,
     requireChannelEmpty: Boolean,
-  ): Unit = removeEntry(
-    key = key,
-    requireNotCollecting = requireNotCollecting,
-    requireChannelEmpty = requireChannelEmpty
-  )
-    .channel
-    .close()
-    .let { }
+    requireExists: Boolean,
+  ) {
+    removeEntry(
+      key = key,
+      requireNotCollecting = requireNotCollecting,
+      requireChannelEmpty = requireChannelEmpty,
+      requireExists = requireExists,
+    )?.channel?.close()
+  }
 
   override fun close() {
     _entryMap.synchronized {
@@ -203,6 +209,8 @@ private class ChannelEventBusImpl(
     }
   }
 }
+
+// ------------------------------------------- PLAYGROUND --------------------------------------------------
 
 data class DemoEvent(val i: Int) : ChannelEvent<DemoEvent> {
   override val key get() = Key
@@ -268,7 +276,7 @@ fun main(): Unit = runBlocking {
   bus.send(DemoEvent(200))
   bus.close()
 
-  runCatching { bus.closeKey(DemoEvent, requireChannelEmpty = true) }
+  runCatching { bus.closeKey(DemoEvent, requireChannelEmpty = true, requireExists = false) }
     .onFailure { it.printStackTrace() }
 
   launch {
