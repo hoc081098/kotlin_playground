@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.internal.SynchronizedObject
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+
+// ------------------------------------ PUBLIC API ------------------------------------
 
 /**
  *
@@ -32,6 +35,51 @@ interface ChannelEvent<out T : ChannelEvent<T>> {
 }
 
 typealias ChannelEventKey<T> = ChannelEvent.Key<T>
+
+interface ChannelEventBusLogger {
+  fun onCreated(key: ChannelEventKey<*>, bus: ChannelEventBus)
+
+  fun onStartCollection(key: ChannelEventKey<*>, bus: ChannelEventBus)
+
+  fun onStopCollection(key: ChannelEventKey<*>, bus: ChannelEventBus)
+
+  fun onClosed(key: ChannelEventKey<*>, bus: ChannelEventBus)
+
+  fun onClosedAll(keys: Set<ChannelEventKey<*>>, bus: ChannelEventBus)
+}
+
+sealed interface ChannelEventBus : Closeable {
+  fun <E : ChannelEvent<E>> send(event: E)
+
+  fun <T : ChannelEvent<T>> receiveAsFlow(key: ChannelEventKey<T>): Flow<T>
+
+  fun closeKey(
+    key: ChannelEventKey<*>,
+    requireNotCollecting: Boolean = true,
+    requireChannelEmpty: Boolean = false,
+  )
+}
+
+fun ChannelEventBus(logger: ChannelEventBusLogger? = null): ChannelEventBus = ChannelEventBusImpl(logger)
+
+object ConsoleChannelEventBusLogger : ChannelEventBusLogger {
+  override fun onCreated(key: ChannelEventKey<*>, bus: ChannelEventBus) =
+    println("[$bus] onCreated: key=$key")
+
+  override fun onStartCollection(key: ChannelEventKey<*>, bus: ChannelEventBus) =
+    println("[$bus] onStartCollection: key=$key")
+
+  override fun onStopCollection(key: ChannelEventKey<*>, bus: ChannelEventBus) =
+    println("[$bus] onStopCollection: key=$key")
+
+  override fun onClosed(key: ChannelEventKey<*>, bus: ChannelEventBus) =
+    println("[$bus] onClosed: key=$key")
+
+  override fun onClosedAll(keys: Set<ChannelEventKey<*>>, bus: ChannelEventBus) =
+    println("[$bus] onClosedAll: keys=$keys")
+}
+
+// ------------------------------------ INTERNAL ------------------------------------
 
 @OptIn(InternalCoroutinesApi::class)
 private class SynchronizedHashMap<K, V> : HashMap<K, V>() {
@@ -49,14 +97,16 @@ private data class Entry(
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ChannelEventBus : Closeable {
+private class ChannelEventBusImpl(
+  @JvmField val logger: ChannelEventBusLogger?
+) : ChannelEventBus {
   private val _entryMap = SynchronizedHashMap<ChannelEventKey<*>, Entry>()
 
   private fun getOrCreateEntry(key: ChannelEventKey<*>): Entry =
     _entryMap.synchronized {
       _entryMap.getOrPut(key) {
         Entry(channel = Channel(capacity = Channel.UNLIMITED), isCollecting = false)
-          .also { println("CREATED: $key -> $it") }
+          .also { logger?.onCreated(key, this) }
       }
     }
 
@@ -66,13 +116,13 @@ class ChannelEventBus : Closeable {
       if (existing === null) {
         Entry(channel = Channel(capacity = Channel.UNLIMITED), isCollecting = true)
           .also { _entryMap[key] = it }
-          .also { println("CREATED: $key -> $it") }
+          .also { logger?.onCreated(key, this) }
       } else {
         check(!existing.isCollecting) { "only one collector is allowed at a time" }
 
         existing.copy(isCollecting = true)
           .also { _entryMap[key] = it }
-          .also { println("UPDATED: $key -> $it") }
+          .also { logger?.onStartCollection(key, this) }
       }
     }
 
@@ -86,7 +136,7 @@ class ChannelEventBus : Closeable {
       check(entry.isCollecting) { "only one collector is allowed at a time" }
       _entryMap[key] = entry
         .copy(isCollecting = false)
-        .also { println("UPDATED: $key -> $it") }
+        .also { logger?.onStopCollection(key, this) }
     }
 
 
@@ -99,8 +149,10 @@ class ChannelEventBus : Closeable {
     requireChannelEmpty: Boolean,
   ): Entry =
     _entryMap.synchronized {
-      _entryMap
-        .remove(key)!!
+      checkNotNull(
+        _entryMap
+          .remove(key)
+      ) { "$key: no entry found" }
         .also {
           if (requireNotCollecting) {
             check(!it.isCollecting) { "$key: only one collector is allowed at a time" }
@@ -109,23 +161,17 @@ class ChannelEventBus : Closeable {
             check(it.channel.isEmpty) { "$key: the channel is not empty. try to consume all elements before closing" }
           }
         }
-        .also { println("REMOVED: $key -> $it") }
+        .also { logger?.onClosed(key, this) }
     }
 
   // ---------------------------------------------------------------------------------------------
 
-  fun <E : ChannelEvent<E>> send(event: E): Unit = getOrCreateEntry(event.key).channel.trySend(event)
-    .let { res ->
-      println("LOG: Sent $event -> $res")
-      _entryMap.forEach { (k, v) ->
-        println("LOG: $k -> $v")
-      }
-      println("-".repeat(80))
-    }
-
+  override fun <E : ChannelEvent<E>> send(event: E): Unit = getOrCreateEntry(event.key).channel
+    .trySend(event)
+    .let { }
 
   @Suppress("UNCHECKED_CAST")
-  fun <T : ChannelEvent<T>> receiveAsFlow(key: ChannelEventKey<T>): Flow<T> = flow {
+  override fun <T : ChannelEvent<T>> receiveAsFlow(key: ChannelEventKey<T>): Flow<T> = flow {
     getOrCreateEntryAndMarkAsCollecting(key)
       .channel
       .receiveAsFlow()
@@ -133,10 +179,10 @@ class ChannelEventBus : Closeable {
       .let { emitAll(it) }
   }.onCompletion { markAsNotCollecting(key) }
 
-  fun closeKey(
+  override fun closeKey(
     key: ChannelEventKey<*>,
-    requireNotCollecting: Boolean = true,
-    requireChannelEmpty: Boolean = false,
+    requireNotCollecting: Boolean,
+    requireChannelEmpty: Boolean,
   ): Unit = removeEntry(
     key = key,
     requireNotCollecting = requireNotCollecting,
@@ -148,9 +194,12 @@ class ChannelEventBus : Closeable {
 
   override fun close() {
     _entryMap.synchronized {
+      val keys = logger?.let { _entryMap.keys.toSet() }
+
       _entryMap.forEach { (_, v) -> v.channel.close() }
       _entryMap.clear()
-      println("CLOSE: forceCloseAll")
+
+      logger?.onClosedAll(keys!!, this)
     }
   }
 }
@@ -172,7 +221,7 @@ data class Demo2Event(val i: Int) : ChannelEvent<Demo2Event> {
 }
 
 fun main(): Unit = runBlocking {
-  val bus = ChannelEventBus()
+  val bus = ChannelEventBus(logger = ConsoleChannelEventBusLogger)
   val d = CompletableDeferred<Unit>()
   val d2 = CompletableDeferred<Unit>()
 
@@ -215,14 +264,20 @@ fun main(): Unit = runBlocking {
   bus.send(DemoEvent(5))
   bus.send(DemoEvent(6))
 
+  bus.send(DemoEvent(100))
+  bus.send(DemoEvent(200))
+  bus.close()
+
   runCatching { bus.closeKey(DemoEvent, requireChannelEmpty = true) }
     .onFailure { it.printStackTrace() }
 
   launch {
-    bus.receiveAsFlow(DemoEvent).collect {
-      println("[3 receive] $it")
-      if (it.i == 6) {
-        cancel()
+    withTimeout(5000) {
+      bus.receiveAsFlow(DemoEvent).collect {
+        println("[3 receive] $it")
+        if (it.i == 6) {
+          cancel()
+        }
       }
     }
   }
