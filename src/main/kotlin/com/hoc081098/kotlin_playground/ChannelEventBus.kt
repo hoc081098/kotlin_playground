@@ -27,43 +27,112 @@ import kotlinx.coroutines.withTimeout
 // ------------------------------------ PUBLIC API ------------------------------------
 
 /**
- *
+ * Represents an event that can be sent to a [ChannelEventBus].
  */
 interface ChannelEvent<out T : ChannelEvent<T>> {
   interface Key<out T : ChannelEvent<T>>
 
+  /**
+   * The key to identify a bus for this type of events.
+   */
   val key: Key<T>
 }
 
 typealias ChannelEventKey<T> = ChannelEvent.Key<T>
 
+/**
+ * Logger for [ChannelEventBus].
+ * It is used to log events of [ChannelEventBus].
+ */
 interface ChannelEventBusLogger {
+  /**
+   * Called when a bus associated with [key] is created.
+   * @see [ChannelEventBus.send]
+   */
   fun onCreated(key: ChannelEventKey<*>, bus: ChannelEventBus)
 
+  /**
+   * Called when a bus associated with [key] is collecting.
+   * @see [ChannelEventBus.receiveAsFlow]
+   */
   fun onStartCollection(key: ChannelEventKey<*>, bus: ChannelEventBus)
 
+  /**
+   * Called when a bus associated with [key] is stopped collecting.
+   * @see [ChannelEventBus.receiveAsFlow]
+   */
   fun onStopCollection(key: ChannelEventKey<*>, bus: ChannelEventBus)
 
+  /**
+   * Called when a bus associated with [key] is closed.
+   * @see [ChannelEventBus.closeKey]
+   */
   fun onClosed(key: ChannelEventKey<*>, bus: ChannelEventBus)
 
+  /**
+   * Called when all buses are closed.
+   * @see [ChannelEventBus.close]
+   */
   fun onClosedAll(keys: Set<ChannelEventKey<*>>, bus: ChannelEventBus)
 }
 
-sealed class ChannelEventBusException(cause: Throwable?, message: String?) : RuntimeException(message, cause) {
+/**
+ * Represents an exception thrown by [ChannelEventBus].
+ */
+sealed class ChannelEventBusException(message: String?, cause: Throwable?) : RuntimeException(message, cause) {
+  abstract val key: ChannelEventKey<*>
+
+  /**
+   * Represents an exception thrown when failed to send an event to a bus.
+   *
+   * @param event the event that failed to send.
+   */
   class FailedToSendEvent(
     val event: ChannelEvent<*>,
     cause: Throwable?,
-  ) : ChannelEventBusException(cause, "Failed to send event: $event")
+  ) : ChannelEventBusException("Failed to send event: $event", cause) {
+    override val key get() = event.key
+  }
 
+  /**
+   * Represents an exception thrown when trying to collect a flow that is already collected by another collector.
+   */
   class FlowAlreadyCollected(
-    val key: ChannelEventKey<*>,
-  ) : ChannelEventBusException(null, "Flow by key=$key is already collected")
+    override val key: ChannelEventKey<*>,
+  ) : ChannelEventBusException("Flow by key=$key is already collected", null)
+
+  /**
+   * Represents an exception thrown when trying to close a bus.
+   */
+  sealed class CloseException(message: String?, cause: Throwable?) : ChannelEventBusException(message, cause) {
+    /**
+     * Represents an exception thrown when trying to close a bus that does not exist.
+     */
+    class BusDoesNotExist(
+      override val key: ChannelEventKey<*>,
+    ) : CloseException("Bus by key=$key does not exist", null)
+
+    /**
+     * Represents an exception thrown when trying to close a bus that is collecting.
+     */
+    class BusIsCollecting(
+      override val key: ChannelEventKey<*>,
+    ) : CloseException("Bus by key=$key is collecting, must cancel the collection before closing", null)
+
+    /**
+     * Represents an exception thrown when trying to close a bus that is not empty (all events are not consumed completely).
+     */
+    class BusIsNotEmpty(
+      override val key: ChannelEventKey<*>,
+    ) : CloseException("Bus by key=$key is not empty, try to consume all elements before closing", null)
+  }
 }
 
 /**
- * ## Multi-key, multi-producer, single-consumer event bus backed by [Channel]s.
+ * ## Multi-keys, multi-producers, single-consumer event bus backed by [Channel]s.
  *
  * - This bus is thread-safe to be used by multiple threads.
+ *   It is safe to send events from multiple threads without any synchronization.
  *
  * - [ChannelEvent.Key] will be used to identify a bus for a specific type of events.
  *   Each bus has a [Channel] to send events to and a [Flow] to receive events from.
@@ -114,12 +183,35 @@ sealed interface ChannelEventBus : Closeable {
    */
   fun <T : ChannelEvent<T>> receiveAsFlow(key: ChannelEventKey<T>): Flow<T>
 
+  /**
+   * Close the bus identified by [key].
+   *
+   * You can validate the bus before closing by passing [requireNotCollecting], [requireChannelEmpty], [requireExists]
+   * - If [requireNotCollecting] is `true`, the bus must not be collecting by any collector before closing.
+   * - If [requireChannelEmpty] is `true`, the channel must be empty before closing.
+   * - If [requireExists] is `true`, the bus must exist before closing.
+   *
+   * @param key the key to identify the bus.
+   * @param requireNotCollecting require the bus must not be collecting by any collector before closing.
+   * If `true` and the bus is collecting, [ChannelEventBusException.CloseException.BusIsCollecting] will be thrown.
+   * @param requireChannelEmpty require the channel must be empty before closing.
+   * If `true` and the channel is not empty, [ChannelEventBusException.CloseException.BusIsNotEmpty] will be thrown.
+   * @param requireExists require the bus must exist before closing.
+   * If `true` and the bus does not exist, [ChannelEventBusException.CloseException.BusDoesNotExist] will be thrown.
+   *
+   * @throws ChannelEventBusException.CloseException if failed to close the bus.
+   */
   fun closeKey(
     key: ChannelEventKey<*>,
     requireNotCollecting: Boolean = true,
     requireChannelEmpty: Boolean = false,
     requireExists: Boolean = true,
   )
+
+  /**
+   * Close all buses without any validation.
+   */
+  override fun close()
 }
 
 /**
@@ -129,6 +221,9 @@ sealed interface ChannelEventBus : Closeable {
  */
 fun ChannelEventBus(logger: ChannelEventBusLogger? = null): ChannelEventBus = ChannelEventBusImpl(logger)
 
+/**
+ * The [ChannelEventBusLogger] that simply prints events to the console via [println].
+ */
 object ConsoleChannelEventBusLogger : ChannelEventBusLogger {
   override fun onCreated(key: ChannelEventKey<*>, bus: ChannelEventBus) =
     println("[$bus] onCreated: key=$key")
@@ -156,7 +251,10 @@ private class SynchronizedHashMap<K, V> : HashMap<K, V>() {
   inline fun <T> synchronized(block: () -> T): T = coroutinesSynchronized(lock, block)
 }
 
-private data class Entry(
+/**
+ * A bus contains a [Channel] and a flag to indicate whether the channel is collecting or not.
+ */
+private data class Bus(
   val channel: Channel<Any>,
   val isCollecting: Boolean
 ) {
@@ -167,22 +265,25 @@ private data class Entry(
 private class ChannelEventBusImpl(
   @JvmField val logger: ChannelEventBusLogger?
 ) : ChannelEventBus {
-  private val _entryMap = SynchronizedHashMap<ChannelEventKey<*>, Entry>()
+  /**
+   * Guarded by [SynchronizedHashMap.lock].
+   */
+  private val _busMap = SynchronizedHashMap<ChannelEventKey<*>, Bus>()
 
-  private fun getOrCreateEntry(key: ChannelEventKey<*>): Entry =
-    _entryMap.synchronized {
-      _entryMap.getOrPut(key) {
-        Entry(channel = Channel(capacity = Channel.UNLIMITED), isCollecting = false)
+  private fun getOrCreateBus(key: ChannelEventKey<*>): Bus =
+    _busMap.synchronized {
+      _busMap.getOrPut(key) {
+        Bus(channel = Channel(capacity = Channel.UNLIMITED), isCollecting = false)
           .also { logger?.onCreated(key, this) }
       }
     }
 
-  private fun getOrCreateEntryAndMarkAsCollecting(key: ChannelEventKey<*>): Entry =
-    _entryMap.synchronized {
-      val existing = _entryMap[key]
+  private fun getOrCreateBusAndMarkAsCollecting(key: ChannelEventKey<*>): Bus =
+    _busMap.synchronized {
+      val existing = _busMap[key]
       if (existing === null) {
-        Entry(channel = Channel(capacity = Channel.UNLIMITED), isCollecting = true)
-          .also { _entryMap[key] = it }
+        Bus(channel = Channel(capacity = Channel.UNLIMITED), isCollecting = true)
+          .also { _busMap[key] = it }
           .also { logger?.onCreated(key, this) }
       } else {
         if (existing.isCollecting) {
@@ -190,60 +291,61 @@ private class ChannelEventBusImpl(
         }
 
         existing.copy(isCollecting = true)
-          .also { _entryMap[key] = it }
+          .also { _busMap[key] = it }
           .also { logger?.onStartCollection(key, this) }
       }
     }
 
 
   /**
-   * Throws if there is no entry for [key].
+   * Throws if there is no bus associated with [key].
    */
   private fun markAsNotCollecting(key: ChannelEventKey<*>): Unit =
-    _entryMap.synchronized {
-      _entryMap[key] = _entryMap[key]!!
+    _busMap.synchronized {
+      _busMap[key] = _busMap[key]!!
         .copy(isCollecting = false)
         .also { logger?.onStopCollection(key, this) }
     }
 
 
   /**
-   * Throws if there is no entry for [key].
+   * @throws ChannelEventBusException.CloseException
    */
-  private fun removeEntry(
+  private fun removeBus(
     key: ChannelEventKey<*>,
     requireNotCollecting: Boolean,
     requireChannelEmpty: Boolean,
     requireExists: Boolean,
-  ): Entry? =
-    _entryMap.synchronized {
-      val removed = _entryMap.remove(key)
+  ): Bus? = _busMap.synchronized {
+    val removed = _busMap.remove(key)
 
-      if (requireExists) {
-        checkNotNull(removed) { "$key: no entry found" }
-      }
-
-      removed?.also {
-        if (requireNotCollecting) {
-          check(!it.isCollecting) { "$key: only one collector is allowed at a time" }
-        }
-        if (requireChannelEmpty) {
-          check(it.channel.isEmpty) { "$key: the channel is not empty. try to consume all elements before closing" }
-        }
-        logger?.onClosed(key, this)
+    if (requireExists) {
+      if (removed === null) {
+        throw ChannelEventBusException.CloseException.BusDoesNotExist(key)
       }
     }
 
+    removed?.also {
+      if (requireNotCollecting && it.isCollecting) {
+        throw ChannelEventBusException.CloseException.BusIsCollecting(key)
+      }
+      if (requireChannelEmpty && !it.channel.isEmpty) {
+        throw ChannelEventBusException.CloseException.BusIsNotEmpty(key)
+      }
+      logger?.onClosed(key, this)
+    }
+  }
+
   // ---------------------------------------------------------------------------------------------
 
-  override fun <E : ChannelEvent<E>> send(event: E) = getOrCreateEntry(event.key)
+  override fun <E : ChannelEvent<E>> send(event: E) = getOrCreateBus(event.key)
     .channel
     .trySend(event)
     .getOrElse { throw ChannelEventBusException.FailedToSendEvent(event, it) }
 
   @Suppress("UNCHECKED_CAST")
   override fun <T : ChannelEvent<T>> receiveAsFlow(key: ChannelEventKey<T>): Flow<T> = flow {
-    getOrCreateEntryAndMarkAsCollecting(key)
+    getOrCreateBusAndMarkAsCollecting(key)
       .channel
       .receiveAsFlow()
       .map { it as T }
@@ -256,7 +358,7 @@ private class ChannelEventBusImpl(
     requireChannelEmpty: Boolean,
     requireExists: Boolean,
   ) {
-    removeEntry(
+    removeBus(
       key = key,
       requireNotCollecting = requireNotCollecting,
       requireChannelEmpty = requireChannelEmpty,
@@ -265,11 +367,11 @@ private class ChannelEventBusImpl(
   }
 
   override fun close() {
-    _entryMap.synchronized {
-      val keys = logger?.let { _entryMap.keys.toSet() }
+    _busMap.synchronized {
+      val keys = logger?.let { _busMap.keys.toSet() }
 
-      _entryMap.forEach { (_, v) -> v.channel.close() }
-      _entryMap.clear()
+      _busMap.forEach { (_, v) -> v.channel.close() }
+      _busMap.clear()
 
       logger?.onClosedAll(keys!!, this)
     }
