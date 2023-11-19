@@ -11,6 +11,7 @@ import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.getOrElse
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -48,9 +49,36 @@ interface ChannelEventBusLogger {
   fun onClosedAll(keys: Set<ChannelEventKey<*>>, bus: ChannelEventBus)
 }
 
+sealed class ChannelEventBusException(cause: Throwable?, message: String?) : RuntimeException(message, cause) {
+  class FailedToSendEvent(
+    val event: ChannelEvent<*>,
+    cause: Throwable?,
+  ) : ChannelEventBusException(cause, "Failed to send event: $event")
+
+  class FlowAlreadyCollected(
+    val key: ChannelEventKey<*>,
+  ) : ChannelEventBusException(null, "Flow by key=$key is already collected")
+}
+
 sealed interface ChannelEventBus : Closeable {
+  /**
+   * Send [event] to the bus identified by [ChannelEvent.key].
+   *
+   * @throws ChannelEventBusException.FailedToSendEvent if failed to send the event.
+   */
   fun <E : ChannelEvent<E>> send(event: E)
 
+  /**
+   * Receive events from the bus identified by [ChannelEvent.key].
+   *
+   * The returned [Flow] is cold and only one collector is allowed at a time.
+   * This make sure all events are consumed.
+   *
+   * If you want to collect the flow multiple times, you must share the flow,
+   * or must cancel the previous collection before collecting again with a new one.
+   *
+   * @throws ChannelEventBusException.FlowAlreadyCollected if collecting the flow is already collected by another collector.
+   */
   fun <T : ChannelEvent<T>> receiveAsFlow(key: ChannelEventKey<T>): Flow<T>
 
   fun closeKey(
@@ -119,7 +147,9 @@ private class ChannelEventBusImpl(
           .also { _entryMap[key] = it }
           .also { logger?.onCreated(key, this) }
       } else {
-        check(!existing.isCollecting) { "only one collector is allowed at a time" }
+        if (existing.isCollecting) {
+          throw ChannelEventBusException.FlowAlreadyCollected(key)
+        }
 
         existing.copy(isCollecting = true)
           .also { _entryMap[key] = it }
@@ -133,9 +163,7 @@ private class ChannelEventBusImpl(
    */
   private fun markAsNotCollecting(key: ChannelEventKey<*>): Unit =
     _entryMap.synchronized {
-      val entry = _entryMap[key]!!
-      check(entry.isCollecting) { "only one collector is allowed at a time" }
-      _entryMap[key] = entry
+      _entryMap[key] = _entryMap[key]!!
         .copy(isCollecting = false)
         .also { logger?.onStopCollection(key, this) }
     }
@@ -173,7 +201,7 @@ private class ChannelEventBusImpl(
   override fun <E : ChannelEvent<E>> send(event: E) = getOrCreateEntry(event.key)
     .channel
     .trySend(event)
-    .getOrThrow()
+    .getOrElse { throw ChannelEventBusException.FailedToSendEvent(event, it) }
 
   @Suppress("UNCHECKED_CAST")
   override fun <T : ChannelEvent<T>> receiveAsFlow(key: ChannelEventKey<T>): Flow<T> = flow {
