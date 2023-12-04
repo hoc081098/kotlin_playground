@@ -26,7 +26,7 @@ dependencies {
 
   implementation("io.github.hoc081098:FlowExt:0.7.4")
   implementation("io.github.hoc081098:kmp-viewmodel:0.5.0")
-  implementation("io.github.hoc081098:channel-event-bus:0.0.1")
+  implementation("io.github.hoc081098:channel-event-bus:0.0.2")
 
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
