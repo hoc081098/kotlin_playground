@@ -29,7 +29,7 @@ dependencies {
   implementation("io.github.hoc081098:channel-event-bus:0.0.2")
 
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
   implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.7")
 
   implementation("io.reactivex.rxjava3:rxjava:3.1.8")
