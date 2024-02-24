@@ -24,7 +24,7 @@ configurations.all {
 dependencies {
   testImplementation(kotlin("test"))
 
-  implementation("io.github.hoc081098:FlowExt:0.7.5")
+  implementation("io.github.hoc081098:FlowExt:0.8.0")
   implementation("io.github.hoc081098:kmp-viewmodel:0.7.0")
   implementation("io.github.hoc081098:channel-event-bus:0.0.2")
 
