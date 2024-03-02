@@ -3,12 +3,21 @@ package com.hoc081098.kotlin_playground.arrowkt
 import arrow.fx.coroutines.asFlow
 import arrow.fx.coroutines.resource
 import arrow.fx.coroutines.resourceScope
-import com.hoc081098.solivagant.lifecycle.LifecycleRegistry
+import com.hoc081098.solivagant.lifecycle.LenientLifecycleRegistry
+import com.hoc081098.solivagant.lifecycle.Lifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
 fun main() = runBlocking {
-  LifecycleRegistry()
+  val lifecycleRegistry = LenientLifecycleRegistry()
+  lifecycleRegistry.subscribe { println("Lifecycle 1: $it") }
+  lifecycleRegistry.onStateChanged(Lifecycle.Event.ON_RESUME)
+  lifecycleRegistry.onStateChanged(Lifecycle.Event.ON_DESTROY)
+
+  lifecycleRegistry.subscribe { println("Lifecycle 2: $it") }
+  lifecycleRegistry.onStateChanged(Lifecycle.Event.ON_CREATE)
+  lifecycleRegistry.moveTo(Lifecycle.State.STARTED)
+  lifecycleRegistry.moveTo(Lifecycle.State.DESTROYED)
 
   val res = resource(
     acquire = {
