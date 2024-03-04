@@ -17,7 +17,7 @@ import kotlin.concurrent.thread
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.coroutines.CoroutineContext
 
-suspend fun currentDispatcher() = currentCoroutineContext()[ContinuationInterceptor]
+private suspend fun currentDispatcher() = currentCoroutineContext()[ContinuationInterceptor]
 
 fun <K, V> Map<K, V>.formatted() = entries.joinToString(
   separator = ",\n",
