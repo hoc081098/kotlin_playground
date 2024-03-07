@@ -9,23 +9,27 @@ import arrow.core.raise.forEachAccumulating
 @JvmInline
 value class Age(val value: Int) {
   companion object {
-    context(Raise<InvalidAge>)
+    context(Raise<InvalidAge>) // Use `context` to raise an error.
     fun from(value: Int): Age =
       if (value in 0..150) Age(value)
       else raise(InvalidAge(value))
   }
 }
 
-data class InvalidAge(val value: Int)
+@JvmInline
+value class InvalidAge(val invalidValue: Int)
 
 fun main() {
-  val hasInvalidAges = listOf(-10, -2, 0, 10, 150, 200)
+  val ints = listOf(-10, -2, 0, 20, 500)
 
+  // use `forEachAccumulating` to accumulate all errors in a `NonEmptyList`
   val either1: Either<NonEmptyList<InvalidAge>, Unit> = either {
-    forEachAccumulating(hasInvalidAges) { Age.from(it) }
+    forEachAccumulating(ints) { Age.from(it) }
   }
+
+  // use `forEach` to stop at the first error
   val either2: Either<InvalidAge, Unit> = either {
-    hasInvalidAges.forEach { Age.from(it) }
+    ints.forEach { Age.from(it) }
   }
 
   println(either1)
