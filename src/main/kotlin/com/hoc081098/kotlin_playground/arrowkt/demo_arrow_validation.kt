@@ -7,7 +7,7 @@ import arrow.core.raise.either
 import arrow.core.raise.forEachAccumulating
 
 @JvmInline
-value class Age(val value: Int) {
+value class Age private constructor(val value: Int) {
   companion object {
     context(Raise<InvalidAge>) // Use `context` to raise an error.
     fun from(value: Int): Age =
