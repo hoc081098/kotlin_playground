@@ -28,7 +28,7 @@ dependencies {
   implementation("io.github.hoc081098:FlowExt:0.8.0")
   implementation("io.github.hoc081098:kmp-viewmodel:0.7.1")
   implementation("io.github.hoc081098:channel-event-bus:0.0.2")
-  implementation("io.github.hoc081098:solivagant-navigation:0.2.2")
+  implementation("io.github.hoc081098:solivagant-navigation:0.3.0")
 
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
