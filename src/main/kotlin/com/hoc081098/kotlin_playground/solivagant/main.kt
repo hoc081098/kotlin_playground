@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -33,6 +34,7 @@ import com.hoc081098.solivagant.navigation.SavedStateSupport
 import com.hoc081098.solivagant.navigation.ScreenDestination
 import com.hoc081098.solivagant.navigation.rememberWindowLifecycleOwner
 import kotlin.LazyThreadSafetyMode.NONE
+import kotlin.random.Random
 import kotlinx.collections.immutable.persistentSetOf
 
 @OptIn(ExperimentalSolivagantApi::class)
@@ -87,8 +89,8 @@ data object FirstRoute : NavRoot {
         onClick = {
           Navigator.navigateTo(
             SecondRoute(
-              id = "123",
-              otherIds = listOf("456", "789"),
+              id = Random.nextInt().toString(),
+              otherIds = List(2) { Random.nextInt().toString() }
             )
           )
         }
@@ -112,10 +114,11 @@ data class SecondRoute(
         modifier = modifier.background(Color.Green.copy(alpha = 0.2f)),
         contentAlignment = Alignment.Center,
       ) {
-        Column {
+        Column(modifier = Modifier.padding(16.dp)) {
           Text(
             text = route.toString(),
-            style = MaterialTheme.typography.displayMedium,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleLarge,
           )
           Spacer(Modifier.height(16.dp))
           Button(onClick = Navigator::navigateBack) {
