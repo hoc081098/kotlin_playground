@@ -54,7 +54,7 @@ fun main() {
   }
 }
 
-@Stable
+@Stable // Should be removed when "strong-skipping mode" is enabled by default.
 val Navigator by lazy(NONE) { NavEventNavigator() }
 
 @Composable
@@ -94,9 +94,7 @@ data object FirstRoute : NavRoot {
             )
           )
         }
-      ) {
-        Text("Go to second route")
-      }
+      ) { Text("Go to second route") }
     }
   }
 }
@@ -114,16 +112,17 @@ data class SecondRoute(
         modifier = modifier.background(Color.Green.copy(alpha = 0.2f)),
         contentAlignment = Alignment.Center,
       ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+          modifier = Modifier.padding(16.dp),
+          horizontalAlignment = Alignment.CenterHorizontally
+        ) {
           Text(
             text = route.toString(),
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.titleLarge,
           )
           Spacer(Modifier.height(16.dp))
-          Button(onClick = Navigator::navigateBack) {
-            Text("Back to first route")
-          }
+          Button(onClick = Navigator::navigateBack) { Text("Back to first route") }
         }
       }
     }
