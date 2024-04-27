@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   kotlin("jvm") version "1.9.23"
+  id("org.jetbrains.compose") version "1.6.10-beta02"
 }
 
 group = "com.hoc.kotlin_playground"
@@ -26,12 +27,21 @@ dependencies {
   testImplementation(kotlin("test"))
 
   implementation("io.github.hoc081098:FlowExt:0.8.0")
-  implementation("io.github.hoc081098:kmp-viewmodel:0.7.1")
+  val kmpViewModel = "0.7.1"
+  implementation("io.github.hoc081098:kmp-viewmodel:$kmpViewModel")
+  implementation("io.github.hoc081098:kmp-viewmodel-savedstate:$kmpViewModel")
+  implementation("io.github.hoc081098:kmp-viewmodel-compose:$kmpViewModel")
   implementation("io.github.hoc081098:channel-event-bus:0.0.2")
   implementation("io.github.hoc081098:solivagant-navigation:0.3.0")
+  implementation(compose.runtime)
+  implementation(compose.foundation)
+  implementation(compose.material3)
+  implementation(compose.materialIconsExtended)
+  implementation(compose.desktop.currentOs)
 
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
+  val coroutines = "1.8.0"
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines")
   implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.7")
 
   implementation("io.reactivex.rxjava3:rxjava:3.1.8")
