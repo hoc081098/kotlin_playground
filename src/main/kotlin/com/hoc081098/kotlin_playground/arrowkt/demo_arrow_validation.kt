@@ -5,6 +5,7 @@ import arrow.core.NonEmptyList
 import arrow.core.raise.Raise
 import arrow.core.raise.either
 import arrow.core.raise.forEachAccumulating
+import arrow.core.raise.mapOrAccumulate
 
 @JvmInline
 value class Age private constructor(val value: Int) {
@@ -34,4 +35,7 @@ fun main() {
 
   println(either1)
   println(either2)
+
+  val either3: Either<NonEmptyList<InvalidAge>, List<Age>> = either { mapOrAccumulate(ints) { Age.from(it) } }
+  println(either3)
 }
