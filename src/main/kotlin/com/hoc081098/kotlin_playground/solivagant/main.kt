@@ -48,8 +48,9 @@ fun main() {
       onCloseRequest = ::exitApplication,
       title = "Solivagant",
     ) {
-      val lifecycleOwner = checkNotNull(rememberWindowLifecycleOwner()) { "rememberWindowLifecycleOwner returns null" }
-      savedStateSupport.ProvideCompositionLocals(LocalLifecycleOwner provides lifecycleOwner) { MyApp() }
+      savedStateSupport.ProvideCompositionLocals(LocalLifecycleOwner provides rememberWindowLifecycleOwner()!!) {
+        MyApp()
+      }
     }
   }
 }
