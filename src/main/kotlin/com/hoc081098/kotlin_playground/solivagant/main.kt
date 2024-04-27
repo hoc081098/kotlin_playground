@@ -48,9 +48,9 @@ fun main() {
       onCloseRequest = ::exitApplication,
       title = "Solivagant",
     ) {
-      savedStateSupport.ProvideCompositionLocals(LocalLifecycleOwner provides rememberWindowLifecycleOwner()!!) {
-        MyApp()
-      }
+      savedStateSupport.ProvideCompositionLocals(
+        LocalLifecycleOwner provides rememberWindowLifecycleOwner()!!
+      ) { MyApp() }
     }
   }
 }
