@@ -39,7 +39,7 @@ dependencies {
   implementation(compose.materialIconsExtended)
   implementation(compose.desktop.currentOs)
 
-  val coroutines = "1.8.0"
+  val coroutines = "1.8.1"
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines")
   implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.7")
