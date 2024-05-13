@@ -26,7 +26,7 @@ configurations.all {
 dependencies {
   testImplementation(kotlin("test"))
 
-  implementation("io.github.hoc081098:FlowExt:0.8.0")
+  implementation("io.github.hoc081098:FlowExt:0.8.1")
   val kmpViewModel = "0.7.1"
   implementation("io.github.hoc081098:kmp-viewmodel:$kmpViewModel")
   implementation("io.github.hoc081098:kmp-viewmodel-savedstate:$kmpViewModel")
