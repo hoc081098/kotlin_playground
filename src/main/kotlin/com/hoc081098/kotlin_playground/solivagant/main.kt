@@ -108,7 +108,7 @@ data object FirstRoute : NavRoot {
       modifier = modifier.background(Color.Red.copy(alpha = 0.2f)),
       contentAlignment = Alignment.Center,
     ) {
-      Column {
+      Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = "result: $result")
 
         Button(
