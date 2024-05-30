@@ -1,8 +1,10 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  kotlin("jvm") version "1.9.23"
-  id("org.jetbrains.compose") version "1.6.10-rc01"
+  val kotlinVersion = "2.0.0"
+  kotlin("jvm") version kotlinVersion
+  id("org.jetbrains.compose") version "1.6.10"
+  id("org.jetbrains.kotlin.plugin.compose") version kotlinVersion
 }
 
 group = "com.hoc.kotlin_playground"
@@ -23,6 +25,10 @@ configurations.all {
   }
 }
 
+composeCompiler {
+  enableStrongSkippingMode = true
+}
+
 dependencies {
   testImplementation(kotlin("test"))
 
@@ -31,7 +37,7 @@ dependencies {
   implementation("io.github.hoc081098:kmp-viewmodel:$kmpViewModel")
   implementation("io.github.hoc081098:kmp-viewmodel-savedstate:$kmpViewModel")
   implementation("io.github.hoc081098:kmp-viewmodel-compose:$kmpViewModel")
-  implementation("io.github.hoc081098:channel-event-bus:0.0.2")
+  implementation("io.github.hoc081098:channel-event-bus:0.0.3-SNAPSHOT")
   implementation("io.github.hoc081098:solivagant-navigation:0.3.0")
   implementation(compose.runtime)
   implementation(compose.foundation)

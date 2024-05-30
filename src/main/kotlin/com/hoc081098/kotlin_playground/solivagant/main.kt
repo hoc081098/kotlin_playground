@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,7 +23,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import com.hoc081098.channeleventbus.ChannelEvent
+import com.hoc081098.channeleventbus.ChannelEventBus
+import com.hoc081098.channeleventbus.ChannelEventKey
+import com.hoc081098.channeleventbus.OptionWhenSendingToBusDoesNotExist
+import com.hoc081098.channeleventbus.ValidationBeforeClosing
+import com.hoc081098.kmp.viewmodel.Closeable
 import com.hoc081098.solivagant.lifecycle.LocalLifecycleOwner
+import com.hoc081098.solivagant.lifecycle.compose.collectAsStateWithLifecycle
 import com.hoc081098.solivagant.navigation.ClearOnDispose
 import com.hoc081098.solivagant.navigation.ExperimentalSolivagantApi
 import com.hoc081098.solivagant.navigation.NavEventNavigator
@@ -32,6 +40,7 @@ import com.hoc081098.solivagant.navigation.NavRoute
 import com.hoc081098.solivagant.navigation.ProvideCompositionLocals
 import com.hoc081098.solivagant.navigation.SavedStateSupport
 import com.hoc081098.solivagant.navigation.ScreenDestination
+import com.hoc081098.solivagant.navigation.rememberCloseableOnRoute
 import com.hoc081098.solivagant.navigation.rememberWindowLifecycleOwner
 import kotlin.LazyThreadSafetyMode.NONE
 import kotlin.random.Random
@@ -55,8 +64,8 @@ fun main() {
   }
 }
 
-@Stable // Should be removed when "strong-skipping mode" is enabled by default.
 val Navigator by lazy(NONE) { NavEventNavigator() }
+val EventBus by lazy(NONE) { ChannelEventBus() }
 
 @Composable
 fun MyApp(modifier: Modifier = Modifier) {
@@ -81,21 +90,38 @@ fun MyApp(modifier: Modifier = Modifier) {
 data object FirstRoute : NavRoot {
   @JvmStatic
   @Stable
-  val Destination = ScreenDestination<FirstRoute> { _, modifier ->
+  val Destination = ScreenDestination<FirstRoute> { route, modifier ->
+    val result by EventBus
+      .receiveAsFlow(SecondResultToFirst)
+      .collectAsStateWithLifecycle(null)
+
+    rememberCloseableOnRoute(route) {
+      Closeable {
+        EventBus.closeKey(
+          key = SecondResultToFirst,
+          validations = ValidationBeforeClosing.NONE,
+        )
+      }
+    }
+
     Box(
       modifier = modifier.background(Color.Red.copy(alpha = 0.2f)),
       contentAlignment = Alignment.Center,
     ) {
-      Button(
-        onClick = {
-          Navigator.navigateTo(
-            SecondRoute(
-              id = Random.nextInt().toString(),
-              otherIds = List(2) { Random.nextInt().toString() }
+      Column {
+        Text(text = "result: $result")
+
+        Button(
+          onClick = {
+            Navigator.navigateTo(
+              SecondRoute(
+                id = Random.nextInt().toString(),
+                otherIds = List(2) { Random.nextInt().toString() }
+              )
             )
-          )
-        }
-      ) { Text("Go to second route") }
+          }
+        ) { Text("Go to second route") }
+      }
     }
   }
 }
@@ -123,9 +149,26 @@ data class SecondRoute(
             style = MaterialTheme.typography.titleLarge,
           )
           Spacer(Modifier.height(16.dp))
-          Button(onClick = Navigator::navigateBack) { Text("Back to first route") }
+          Button(
+            onClick = {
+              Navigator.navigateBack()
+              EventBus.send(
+                event = SecondResultToFirst(number = Random.nextInt()),
+                option = OptionWhenSendingToBusDoesNotExist.DO_NOTHING
+              )
+            }
+          ) {
+            Text("Back to first route")
+          }
         }
       }
     }
   }
+}
+
+@Immutable
+data class SecondResultToFirst(val number: Int) : ChannelEvent<SecondResultToFirst> {
+  override val key = Key
+
+  companion object Key : ChannelEventKey<SecondResultToFirst>(SecondResultToFirst::class)
 }
