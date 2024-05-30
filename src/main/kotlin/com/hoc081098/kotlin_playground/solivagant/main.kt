@@ -109,7 +109,11 @@ data object FirstRoute : NavRoot {
       contentAlignment = Alignment.Center,
     ) {
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = "result: $result")
+        Text(
+          text = "result: $result",
+          textAlign = TextAlign.Center,
+          style = MaterialTheme.typography.titleLarge,
+        )
 
         Button(
           onClick = {
