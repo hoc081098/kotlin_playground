@@ -25,9 +25,12 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.hoc081098.channeleventbus.ChannelEvent
 import com.hoc081098.channeleventbus.ChannelEventBus
+import com.hoc081098.channeleventbus.ChannelEventBusException
 import com.hoc081098.channeleventbus.ChannelEventKey
 import com.hoc081098.channeleventbus.OptionWhenSendingToBusDoesNotExist
 import com.hoc081098.channeleventbus.ValidationBeforeClosing
+import com.hoc081098.flowext.FlowExtPreview
+import com.hoc081098.flowext.catchAndResume
 import com.hoc081098.kmp.viewmodel.Closeable
 import com.hoc081098.solivagant.lifecycle.LocalLifecycleOwner
 import com.hoc081098.solivagant.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,6 +48,7 @@ import com.hoc081098.solivagant.navigation.rememberWindowLifecycleOwner
 import kotlin.LazyThreadSafetyMode.NONE
 import kotlin.random.Random
 import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.coroutines.flow.emptyFlow
 
 @OptIn(ExperimentalSolivagantApi::class)
 fun main() {
@@ -88,12 +92,18 @@ fun MyApp(modifier: Modifier = Modifier) {
 
 @Immutable
 data object FirstRoute : NavRoot {
+  @OptIn(FlowExtPreview::class)
   @JvmStatic
   @Stable
   val Destination = ScreenDestination<FirstRoute> { route, modifier ->
-    val result by EventBus
-      .receiveAsFlow(SecondResultToFirst)
-      .collectAsStateWithLifecycle(null)
+    val result by remember {
+      EventBus
+        .receiveAsFlow(SecondResultToFirst)
+        .catchAndResume {
+          if (it is ChannelEventBusException.FlowAlreadyCollected) emptyFlow()
+          else throw it
+        }
+    }.collectAsStateWithLifecycle(null)
 
     rememberCloseableOnRoute(route) {
       Closeable {
