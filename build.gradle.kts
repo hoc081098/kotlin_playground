@@ -33,7 +33,7 @@ dependencies {
   testImplementation(kotlin("test"))
 
   implementation("io.github.hoc081098:FlowExt:1.0.0-RC")
-  val kmpViewModel = "0.7.1"
+  val kmpViewModel = "0.8.0"
   implementation("io.github.hoc081098:kmp-viewmodel:$kmpViewModel")
   implementation("io.github.hoc081098:kmp-viewmodel-savedstate:$kmpViewModel")
   implementation("io.github.hoc081098:kmp-viewmodel-compose:$kmpViewModel")
