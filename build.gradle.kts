@@ -50,7 +50,7 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines")
   implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.7")
 
-  implementation("io.reactivex.rxjava3:rxjava:3.1.8")
+  implementation("io.reactivex.rxjava3:rxjava:3.1.9")
   implementation("com.github.akarnokd:kotlin-flow-extensions:0.0.14")
 
   api(platform("com.ensody.reactivestate:reactivestate-bom:5.7.0"))
