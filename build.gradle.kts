@@ -38,7 +38,7 @@ dependencies {
   implementation("io.github.hoc081098:kmp-viewmodel-savedstate:$kmpViewModel")
   implementation("io.github.hoc081098:kmp-viewmodel-compose:$kmpViewModel")
   implementation("io.github.hoc081098:channel-event-bus:0.1.0")
-  implementation("io.github.hoc081098:solivagant-navigation:0.3.0")
+  implementation("io.github.hoc081098:solivagant-navigation:0.5.0")
   implementation(compose.runtime)
   implementation(compose.foundation)
   implementation(compose.material3)
