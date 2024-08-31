@@ -53,7 +53,7 @@ dependencies {
   implementation("io.reactivex.rxjava3:rxjava:3.1.9")
   implementation("com.github.akarnokd:kotlin-flow-extensions:0.0.14")
 
-  api(platform("com.ensody.reactivestate:reactivestate-bom:5.7.0"))
+  api(platform("com.ensody.reactivestate:reactivestate-bom:5.8.1"))
   implementation("com.ensody.reactivestate:reactivestate")
 
   val arrow = "1.2.4"
