@@ -65,7 +65,7 @@ class Processor<T>(
   }
 
   fun close() =
-    runBlocking { scope.cancel(); println("$this closed") }
+    runBlocking { scope.cancel(); println("${this@Processor} closed") }
 }
 
 
@@ -77,7 +77,7 @@ fun main() = runBlocking {
 
   val count = AtomicInt()
 
-  repeat(100) { index ->
+  repeat(20) { index ->
     processor.enqueue {
       count.incrementAndGet().let {
         if (it > concurrency) {
@@ -103,6 +103,6 @@ fun main() = runBlocking {
     }
   }
 
-  delay(20_000)
+  delay(10_000)
   processor.close()
 }
