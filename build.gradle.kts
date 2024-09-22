@@ -33,7 +33,7 @@ dependencies {
   testImplementation(kotlin("test"))
 
   // Kotlin Flow Extensions
-  implementation("io.github.hoc081098:FlowExt:1.0.0-RC")
+  implementation("io.github.hoc081098:FlowExt:1.0.0")
 
   // Kotlin Multiplatform ViewModel, SavedStateHandle, Compose Multiplatform ViewModel
   val kmpViewModel = "0.8.0"
