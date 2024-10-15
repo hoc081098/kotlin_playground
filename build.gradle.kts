@@ -2,7 +2,7 @@ plugins {
   val kotlinVersion = "2.0.21"
   kotlin("jvm") version kotlinVersion
   id("org.jetbrains.kotlin.plugin.compose") version kotlinVersion
-  id("org.jetbrains.compose") version "1.6.11"
+  id("org.jetbrains.compose") version "1.7.0"
 }
 
 group = "com.hoc.kotlin_playground"
