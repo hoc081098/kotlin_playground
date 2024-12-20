@@ -53,7 +53,7 @@ dependencies {
   implementation(compose.desktop.currentOs)
 
   // Coroutines
-  val coroutines = "1.9.0"
+  val coroutines = "1.10.0"
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines")
   implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.8")
