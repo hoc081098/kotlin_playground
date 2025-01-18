@@ -1,6 +1,5 @@
 package com.hoc081098.state
 
-import arrow.fx.coroutines.continuations.resource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

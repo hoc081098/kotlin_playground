@@ -67,10 +67,11 @@ dependencies {
   implementation("com.ensody.reactivestate:reactivestate")
 
   // Arrow-kt
-  val arrow = "1.2.4"
+  val arrow = "2.0.0"
   implementation("io.arrow-kt:arrow-core:$arrow")
   implementation("io.arrow-kt:arrow-fx-coroutines:$arrow")
   implementation("io.arrow-kt:arrow-autoclose:$arrow")
+  implementation("io.arrow-kt:arrow-resilience:$arrow")
 }
 
 tasks.test {

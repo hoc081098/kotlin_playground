@@ -3,6 +3,7 @@ package com.hoc081098.kotlin_playground.arrowkt
 import arrow.fx.coroutines.asFlow
 import arrow.fx.coroutines.resource
 import arrow.fx.coroutines.resourceScope
+import arrow.fx.coroutines.use
 import com.hoc081098.solivagant.lifecycle.LenientLifecycleRegistry
 import com.hoc081098.solivagant.lifecycle.Lifecycle
 import kotlinx.coroutines.delay
