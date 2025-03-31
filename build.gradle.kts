@@ -63,7 +63,7 @@ dependencies {
   implementation("com.github.akarnokd:kotlin-flow-extensions:0.0.14")
 
   // reactivestate
-  api(platform("com.ensody.reactivestate:reactivestate-bom:5.12.0"))
+  api(platform("com.ensody.reactivestate:reactivestate-bom:5.13.0"))
   implementation("com.ensody.reactivestate:reactivestate")
 
   // Arrow-kt
