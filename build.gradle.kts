@@ -56,7 +56,7 @@ dependencies {
   val coroutines = "1.10.2"
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines")
-  implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.8")
+  implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
 
   // RxJava3 and Kotlin Flow Extensions
   implementation("io.reactivex.rxjava3:rxjava:3.1.10")
