@@ -59,7 +59,7 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
 
   // RxJava3 and Kotlin Flow Extensions
-  implementation("io.reactivex.rxjava3:rxjava:3.1.10")
+  implementation("io.reactivex.rxjava3:rxjava:3.1.11")
   implementation("com.github.akarnokd:kotlin-flow-extensions:0.0.14")
 
   // reactivestate
